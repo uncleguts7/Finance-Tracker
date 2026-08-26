@@ -7,12 +7,14 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
+    // Index method
     function index()
     {
-        $categories = Category::where('is_deleted', false)->get();
+        $categories = Category::all();
         return response()->json($categories, 200);
     }
 
+    // Store method
     function store(Request $request)
     {
         $request->validate([
@@ -28,6 +30,7 @@ class CategoryController extends Controller
         return response()->json($category, 201);
     }
 
+    // Update method
     function update(Request $request, $id)
     {
         $request->validate([
@@ -36,7 +39,7 @@ class CategoryController extends Controller
         ]);
 
         $category = Category::find($id);
-        if(!$category || $category->is_deleted) {
+        if(!$category) {
             return response()->json(['message'=>'Category not found'], 404);
         }
 
@@ -48,15 +51,15 @@ class CategoryController extends Controller
         return response()->json($category, 200);
     }
 
+    // Destroy method
     function destroy($id)
     {
         $category = Category::find($id);
-        if(!$category || $category->is_deleted) {
+        if(!$category) {
             return response()->json(['message'=>'Category not found'], 404);
         }
 
-        $category->is_deleted = true;
-        $category->save();
+        $category->delete();
 
         return response()->json(['message'=> 'deleted successfully'], 200);
     }
