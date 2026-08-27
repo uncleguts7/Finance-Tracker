@@ -81,4 +81,14 @@ class MonthController extends Controller
 
         return response()->json($month, 200);
     }
+
+    public function summary($id)
+    {
+        $month = Month::find($id);
+        if(!$month) {
+            return response()->json(['message'=>'Month not found'], 404);
+        }
+
+        return response()->json($month->summary(), 200);
+    }
 }

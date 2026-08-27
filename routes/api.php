@@ -12,6 +12,7 @@ Route::get('/user', function (Request $request) {
 
 Route::middleware('ensure.month')->group(function() {
     Route::apiResource('months', MonthController::class)->except(['store', 'destroy']);
+    Route::get('months/{id}/summary', [MonthController::class, 'summary']);
 });
 
 //Category routes
@@ -21,3 +22,4 @@ Route::apiResource('categories', CategoryController::class)->except(['show']);
 Route::apiResource('expenses', ExpenseController::class)->except(['index', 'store']);
 Route::get('months/{monthId}/expenses', [ExpenseController::class, 'index']);
 Route::post('months/{monthId}/expenses', [ExpenseController::class, 'store']);
+
