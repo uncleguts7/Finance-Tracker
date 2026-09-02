@@ -3,15 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Month extends Model
 {
     protected $fillable = [
         'savings_goal',
-        'income'
+        'income',
     ];
 
-    function expenses()
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function expenses()
     {
         return $this->hasMany(Expense::class);
     }
@@ -50,7 +56,7 @@ class Month extends Model
             ->get();
     }
 
-    // Return a summary of the month 
+    // Return a summary of the month
     public function summary()
     {
         return [
@@ -63,5 +69,4 @@ class Month extends Model
             'spending_by_category' => $this->spendingByCategory(),
         ];
     }
-
 }

@@ -7,38 +7,43 @@ use Illuminate\Http\Request;
 
 class MonthController extends Controller
 {
-    function index()
+    // Index method
+    public function index()
     {
-        $months = Month::all();
+        $months = auth()->user()->months()->get();
+
         return response()->json($months, 200);
     }
 
-    function show($id)
+    // Show method
+    public function show($id)
     {
-        $month = Month::find($id);
-        if(!$month) {
-            return response()->json(['message'=>'Month not found'], 404);
+        $month = auth()->user()->months()->find($id);
+        if (! $month) {
+            return response()->json(['message' => 'Month not found'], 404);
         }
 
         return response()->json($month, 200);
     }
 
-    function store()
+    // Store method (used by EnsureCurrentMonthExists middleware)
+    public function store()
     {
-        $exists = Month::where('year', now()->year)
-                        ->where('month_number', now()->month)
-                        ->exists();
+        $exists = auth()->user()->months()
+            ->where('year', now()->year)
+            ->where('month_number', now()->month)
+            ->exists();
 
-        if($exists)
-        {
+        if ($exists) {
             return;
-
         }
-        
-        $ActiveMonth = Month::where('is_active', true)->first();
 
-        $income = $ActiveMonth ? $ActiveMonth->income : 0;
-        $savings_goal = $ActiveMonth ? $ActiveMonth->savings_goal : 0;
+        $activeMonth = auth()->user()->months()
+            ->where('is_active', true)
+            ->first();
+
+        $income = $activeMonth ? $activeMonth->income : 0;
+        $savings_goal = $activeMonth ? $activeMonth->savings_goal : 0;
 
         $month = Month::forceCreate([
             'year' => now()->year,
@@ -46,47 +51,48 @@ class MonthController extends Controller
             'income' => $income,
             'savings_goal' => $savings_goal,
             'is_active' => true,
+            'user_id' => auth()->id(),
         ]);
 
-        if($ActiveMonth)
-        {
-            $ActiveMonth->is_active = false;
-            $ActiveMonth->save();
+        if ($activeMonth) {
+            $activeMonth->is_active = false;
+            $activeMonth->save();
         }
 
         return response()->json($month, 201);
-        
     }
 
-    function update(Request $request, $id)
+    // Update method
+    public function update(Request $request, $id)
     {
-        $month = Month::find($id);
-        if(!$month) {
-            return response()->json(['message'=>'Month not found'], 404);
+        $month = auth()->user()->months()->find($id);
+        if (! $month) {
+            return response()->json(['message' => 'Month not found'], 404);
         }
 
-        if(!$month->is_active) {
-            return response()->json(['message'=>'Cannot update a past month'], 403);
+        if (! $month->is_active) {
+            return response()->json(['message' => 'Cannot update a past month'], 403);
         }
 
         $request->validate([
-            'income'=> 'required|numeric',
-            'savings_goal'=> 'required|numeric',
+            'income' => 'required|numeric',
+            'savings_goal' => 'required|numeric',
         ]);
 
         $month->update([
-            'income'=> $request->income,
-            'savings_goal'=> $request->savings_goal,
+            'income' => $request->income,
+            'savings_goal' => $request->savings_goal,
         ]);
 
         return response()->json($month, 200);
     }
 
+    // summary method
     public function summary($id)
     {
-        $month = Month::find($id);
-        if(!$month) {
-            return response()->json(['message'=>'Month not found'], 404);
+        $month = auth()->user()->months()->find($id);
+        if (! $month) {
+            return response()->json(['message' => 'Month not found'], 404);
         }
 
         return response()->json($month->summary(), 200);

@@ -8,59 +8,61 @@ use Illuminate\Http\Request;
 class CategoryController extends Controller
 {
     // Index method
-    function index()
+    public function index()
     {
-        $categories = Category::all();
+        $categories = auth()->user()->categories()->get();
+
         return response()->json($categories, 200);
     }
 
     // Store method
-    function store(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
-            'name'=> 'required|string',
-            'default_type'=> 'required|string|in:fixed,variable',
+            'name' => 'required|string',
+            'default_type' => 'required|string|in:fixed,variable',
         ]);
 
-        $category = Category::create([
-            'name'=>$request->name,
-            'default_type'=>$request->default_type,
+        $category = Category::forceCreate([
+            'name' => $request->name,
+            'default_type' => $request->default_type,
+            'user_id' => auth()->id(),
         ]);
 
         return response()->json($category, 201);
     }
 
     // Update method
-    function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $request->validate([
-            'name'=> 'required|string',
-            'default_type'=> 'required|string|in:fixed,variable',
+            'name' => 'required|string',
+            'default_type' => 'required|string|in:fixed,variable',
         ]);
 
-        $category = Category::find($id);
-        if(!$category) {
-            return response()->json(['message'=>'Category not found'], 404);
+        $category = auth()->user()->categories()->find($id);
+        if (! $category) {
+            return response()->json(['message' => 'Category not found'], 404);
         }
 
         $category->update([
-            'name'=> $request->name,
-            'default_type'=> $request->default_type,
+            'name' => $request->name,
+            'default_type' => $request->default_type,
         ]);
 
         return response()->json($category, 200);
     }
 
     // Destroy method
-    function destroy($id)
+    public function destroy($id)
     {
-        $category = Category::find($id);
-        if(!$category) {
-            return response()->json(['message'=>'Category not found'], 404);
+        $category = auth()->user()->categories()->find($id);
+        if (! $category) {
+            return response()->json(['message' => 'Category not found'], 404);
         }
 
         $category->delete();
 
-        return response()->json(['message'=> 'deleted successfully'], 200);
+        return response()->json(['message' => 'deleted successfully'], 200);
     }
 }
