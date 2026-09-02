@@ -165,15 +165,12 @@ Month (1) ──< (many) Expense >── (1) Category
 - `GET /months/{id}/summary` — returns income, savings_goal, total_spent, remaining, available_to_spend, is_overspent, spending_by_category (with category names via join, correctly includes soft-deleted categories' historical expenses; returns nulls for skipped months)
 
 **Missing / not yet built:**
-- No tests for auth (register, login, logout, token scoping)
-- No tests for Category/Expense/Month endpoints (only gaps are tested)
 - No API Resource classes — all responses return raw model JSON
 - No frontend — planned as a separate SPA
 
-**All endpoints manually tested via Postman and confirmed working**, including edge cases (403 on past-month edits, 404s, soft-delete validation rejection, first-month-ever $0 default, registration seeding, login token issuance, token scoping, gap detection with backfill/skip).
+**78 Pest tests covering all endpoints** (auth, categories, months, expenses, gaps, summaries) — all passing.
 
 ## 8. What's Next (Not Yet Designed/Built)
 
 1. **API Resources** — replace raw model JSON dumps with Laravel API Resource classes for controlled, clean response shaping.
-2. **Tests** — write Pest tests for all existing endpoints (auth, months, categories, expenses, summary, edge cases).
-3. **Frontend** — stack/framework not yet decided; planned as a separate SPA consuming this API.
+2. **Frontend** — stack/framework not yet decided; planned as a separate SPA consuming this API.
