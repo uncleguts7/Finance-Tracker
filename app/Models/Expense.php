@@ -13,12 +13,12 @@ class Expense extends Model
         'category_id',
     ];
 
-    function category()
+    public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    function month()
+    public function month()
     {
         return $this->belongsTo(Month::class);
     }

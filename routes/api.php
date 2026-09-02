@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\GapController;
 use App\Http\Controllers\MonthController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,4 +27,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('expenses', ExpenseController::class)->except(['index', 'store']);
     Route::get('months/{monthId}/expenses', [ExpenseController::class, 'index']);
     Route::post('months/{monthId}/expenses', [ExpenseController::class, 'store']);
+
+    // Gap routes
+    Route::middleware('ensure.month')->group(function () {
+        Route::get('/gaps', [GapController::class, 'index']);
+        Route::post('/gaps/backfill', [GapController::class, 'backfill']);
+        Route::post('/gaps/skip', [GapController::class, 'skip']);
+    });
 });
