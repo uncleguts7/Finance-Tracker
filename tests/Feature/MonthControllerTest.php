@@ -17,10 +17,10 @@ it('lists the current month from middleware', function () {
     $response = $this->getJson('/api/months');
 
     $response->assertOk();
-    expect($response->json())->toHaveCount(1)
-        ->and($response->json('0.year'))->toBe((int) now()->year)
-        ->and($response->json('0.month_number'))->toBe((int) now()->month)
-        ->and($response->json('0.is_active'))->toBe(1);
+    expect($response->json('data'))->toHaveCount(1)
+        ->and($response->json('data.0.year'))->toBe((int) now()->year)
+        ->and($response->json('data.0.month_number'))->toBe((int) now()->month)
+        ->and($response->json('data.0.is_active'))->toBe(1);
 });
 
 it('lists all months for the user', function () {
@@ -31,7 +31,7 @@ it('lists all months for the user', function () {
     $response = $this->getJson('/api/months');
 
     $response->assertOk();
-    expect($response->json())->toHaveCount(2);
+    expect($response->json('data'))->toHaveCount(2);
 });
 
 it('does not show other users months', function () {
@@ -42,7 +42,7 @@ it('does not show other users months', function () {
     $response = $this->getJson('/api/months');
 
     $response->assertOk();
-    expect($response->json())->toHaveCount(1);
+    expect($response->json('data'))->toHaveCount(1);
 });
 
 // ─── GET /api/months/{id} ───
@@ -54,7 +54,9 @@ it('shows a specific month', function () {
 
     $this->getJson("/api/months/{$month->id}")
         ->assertOk()
-        ->assertJsonFragment(['year' => 2026, 'month_number' => 1, 'income' => 3000]);
+        ->assertJsonPath('data.year', 2026)
+        ->assertJsonPath('data.month_number', 1)
+        ->assertJsonPath('data.income', 3000);
 });
 
 it('returns 404 for a non-existent month', function () {
@@ -77,15 +79,16 @@ it('returns 404 for another users month', function () {
 it('updates the active month', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $activeMonth = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
 
-    $response = $this->putJson("/api/months/{$activeMonth['id']}", [
+    $response = $this->putJson("/api/months/{$monthId}", [
         'income' => 6000,
         'savings_goal' => 1500,
     ]);
 
     $response->assertOk()
-        ->assertJsonFragment(['income' => 6000, 'savings_goal' => 1500]);
+        ->assertJsonPath('data.income', 6000)
+        ->assertJsonPath('data.savings_goal', 1500);
 });
 
 it('rejects updating a past month', function () {
@@ -113,9 +116,9 @@ it('returns 404 updating non-existent month', function () {
 it('validates month update inputs', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $activeMonth = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
 
-    $this->putJson("/api/months/{$activeMonth['id']}", [])
+    $this->putJson("/api/months/{$monthId}", [])
         ->assertStatus(422);
 });
 
@@ -131,17 +134,15 @@ it('returns a summary for a month', function () {
     $response = $this->getJson("/api/months/{$month->id}/summary");
 
     $response->assertOk()
-        ->assertJson([
-            'income' => 5000,
-            'savings_goal' => 1000,
-            'total_spent' => 200,
-            'remaining' => 4800,
-            'available_to_spend' => 4000,
-            'is_overspent' => false,
-        ]);
-    expect($response->json('spending_by_category'))->toHaveCount(1)
-        ->and($response->json('spending_by_category.0.category_name'))->toBe('Food')
-        ->and($response->json('spending_by_category.0.total'))->toBe(200);
+        ->assertJsonPath('data.income', 5000)
+        ->assertJsonPath('data.savings_goal', 1000)
+        ->assertJsonPath('data.total_spent', 200)
+        ->assertJsonPath('data.remaining', 4800)
+        ->assertJsonPath('data.available_to_spend', 4000)
+        ->assertJsonPath('data.is_overspent', false);
+    expect($response->json('data.spending_by_category'))->toHaveCount(1)
+        ->and($response->json('data.spending_by_category.0.category_name'))->toBe('Food')
+        ->and($response->json('data.spending_by_category.0.total'))->toBe(200);
 });
 
 it('returns 404 for summary of non-existent month', function () {

@@ -77,7 +77,7 @@ Month (1) ──< (many) Expense >── (1) Category
 - `availableToSpend()` = income − savings_goal
 - `isOverSpent()` = totalSpent() > availableToSpend()
 - `spendingByCategory()` = expenses joined with categories, grouped by category name, summed
-- `summary()` = combines all of the above into one array (used by `/months/{id}/summary`)
+- `summary()` = pure computation — combines all of the above into one array. Shape decision (skipped-vs-normal) belongs to `MonthSummaryResource`.
 
 ---
 
@@ -136,13 +136,14 @@ Month (1) ──< (many) Expense >── (1) Category
 - **Month creation logic location**: initially being built as `MonthController@store()`. Realized `store` wasn't even routed (months are never manually created via API) — logic was moved entirely into `EnsureCurrentMonthExists` middleware instead.
 - **Category seeding moved from global seeder to registration flow**: originally `CategorySeeder` seeded 3 defaults globally (no user_id). After adding auth, seeding happens inline in `AuthController::register()` per new user. The old `CategorySeeder` file remains but is no longer called — intentionally kept as a reference.
 - **`MonthController::store()` left as dead code**: excluded from routes via `apiResource` `except: ['store']`. Not removed — kept for reference but never called. Month creation is exclusively handled by `EnsureCurrentMonthExists` middleware.
+- **`Month::summary()` is now pure computation**: the `is_skipped` branch was removed from the model method and moved to `MonthSummaryResource`. This keeps the model focused on data computation while the resource owns the presentation/shape decision (skipped months return nulls vs normal months return computed values).
 
 ---
 
 ## 7. Current Status
 
 **Fully built, tested, and working (backend):**
-- **User model** with `HasApiTokens` trait, `hasMany` relationships to `Month` and `Category`
+- **User model** with `HasApiTokens` traits, `hasMany` relationships to `Month` and `Category`
 - **AuthController**: `register` (creates user + seeds 3 default categories per user + issues token), `login` (issues token), `logout` (revokes current token), `user` (returns authenticated user)
 - Auth routes: `POST /register`, `POST /login`, `POST /logout` (auth:sanctum), `GET /user` (auth:sanctum)
 - All controllers scoped through `auth()->user()->months()` / `auth()->user()->categories()` / `whereHas('month', ...)` for expenses
@@ -158,19 +159,22 @@ Month (1) ──< (many) Expense >── (1) Category
 - **GapController**: `index` (detect month gaps), `backfill` (create normal month for gap), `skip` (create skipped month for gap) — all auth-guarded, all tested
 - Gap routes: `GET /gaps`, `POST /gaps/backfill`, `POST /gaps/skip` — inside `auth:sanctum` + `ensure.month`
 - Migration to add `is_skipped` (boolean, default false) and `skipped_at` (nullable timestamp) to `months` table (applied)
-- `Month::summary()` returns nulls for all calculated fields when `is_skipped` is true — distinguishes "skipped" from "zero data"
+- `Month::summary()` is pure computation — skipped-vs-normal shape decision moved to `MonthSummaryResource`
 - Skipped months appear in `GET /months` with `is_skipped: true` — full history visible
-- 16 Pest tests covering gaps detection, backfill, skip, summaries, auth guards, and edge cases — all passing
 - Routes fully wired in `routes/api.php`, mixing `apiResource` shortcuts with manual nested routes where needed
-- `GET /months/{id}/summary` — returns income, savings_goal, total_spent, remaining, available_to_spend, is_overspent, spending_by_category (with category names via join, correctly includes soft-deleted categories' historical expenses; returns nulls for skipped months)
+- `GET /months/{id}/summary` — returns income, savings_goal, total_spent, remaining, available_to_spend, is_overspent, spending_by_category (with category names via join, correctly includes soft-deleted categories' historical expenses; returns nulls for skipped months via `MonthSummaryResource`)
+- **API Resources**: all responses wrapped in `data` key per Laravel convention
+  - `UserResource` — with optional `token` via `withToken()` for auth responses
+  - `MonthResource` — all month fields except `user_id`
+  - `CategoryResource` — all category fields except `user_id` and `deleted_at`
+  - `ExpenseResource` — all expense fields with optional embedded `category` via `whenLoaded()`
+  - `MonthSummaryResource` — owns skipped-vs-normal shape decision (nulls for skipped, computed values for normal)
 
 **Missing / not yet built:**
-- No API Resource classes — all responses return raw model JSON
 - No frontend — planned as a separate SPA
 
-**78 Pest tests covering all endpoints** (auth, categories, months, expenses, gaps, summaries) — all passing.
+**78 Pest tests covering all endpoints** (auth, categories, months, expenses, gaps, summaries, API resource responses) — all passing.
 
 ## 8. What's Next (Not Yet Designed/Built)
 
-1. **API Resources** — replace raw model JSON dumps with Laravel API Resource classes for controlled, clean response shaping.
-2. **Frontend** — stack/framework not yet decided; planned as a separate SPA consuming this API.
+1. **Frontend** — stack/framework not yet decided; planned as a separate SPA consuming this API.

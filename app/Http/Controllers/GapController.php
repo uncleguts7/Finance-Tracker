@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\MonthResource;
 use App\Models\Month;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -78,7 +79,7 @@ class GapController extends Controller
             'user_id' => $user->id,
         ]);
 
-        return response()->json($month, 201);
+        return MonthResource::make($month)->response()->setStatusCode(201);
     }
 
     public function skip(Request $request): JsonResponse
@@ -110,6 +111,6 @@ class GapController extends Controller
             'user_id' => $user->id,
         ]);
 
-        return response()->json($month, 201);
+        return MonthResource::make($month)->response()->setStatusCode(201);
     }
 }

@@ -16,8 +16,8 @@ it('lists categories for the authenticated user', function () {
     $response = $this->getJson('/api/categories');
 
     $response->assertOk();
-    expect($response->json())->toHaveCount(1)
-        ->and($response->json('0.name'))->toBe('Rent');
+    expect($response->json('data'))->toHaveCount(1)
+        ->and($response->json('data.0.name'))->toBe('Rent');
 });
 
 it('returns empty list when user has no categories', function () {
@@ -26,7 +26,7 @@ it('returns empty list when user has no categories', function () {
 
     $this->getJson('/api/categories')
         ->assertOk()
-        ->assertJson([]);
+        ->assertJsonPath('data', []);
 });
 
 it('does not show other users categories', function () {
@@ -36,7 +36,7 @@ it('does not show other users categories', function () {
 
     $this->getJson('/api/categories')
         ->assertOk()
-        ->assertJson([]);
+        ->assertJsonPath('data', []);
 });
 
 // ─── POST /api/categories ───
@@ -51,7 +51,8 @@ it('creates a category', function () {
     ]);
 
     $response->assertCreated()
-        ->assertJsonFragment(['name' => 'Groceries', 'default_type' => 'variable']);
+        ->assertJsonPath('data.name', 'Groceries')
+        ->assertJsonPath('data.default_type', 'variable');
 
     $this->assertDatabaseHas('categories', [
         'name' => 'Groceries',
@@ -92,7 +93,8 @@ it('updates a category', function () {
     ]);
 
     $response->assertOk()
-        ->assertJsonFragment(['name' => 'Mortgage', 'default_type' => 'variable']);
+        ->assertJsonPath('data.name', 'Mortgage')
+        ->assertJsonPath('data.default_type', 'variable');
 });
 
 it('returns 404 when updating non-existent category', function () {
@@ -149,7 +151,7 @@ it('removes a soft-deleted category from the list', function () {
 
     $this->getJson('/api/categories')
         ->assertOk()
-        ->assertJson([]);
+        ->assertJsonPath('data', []);
 });
 
 it('returns 404 when deleting non-existent category', function () {

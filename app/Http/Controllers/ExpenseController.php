@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,7 @@ class ExpenseController extends Controller
 
         $expenses = Expense::where('month_id', $monthId)->get();
 
-        return response()->json($expenses, 200);
+        return ExpenseResource::collection($expenses);
     }
 
     // Show method
@@ -32,7 +33,7 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Expense not found'], 404);
         }
 
-        return response()->json($expense, 200);
+        return new ExpenseResource($expense);
     }
 
     // Store method
@@ -69,7 +70,7 @@ class ExpenseController extends Controller
         $expense->month_id = $monthId;
         $expense->save();
 
-        return response()->json($expense, 201);
+        return ExpenseResource::make($expense)->response()->setStatusCode(201);
     }
 
     // Update method
@@ -106,7 +107,7 @@ class ExpenseController extends Controller
             'category_id' => $request->category_id,
         ]);
 
-        return response()->json($expense, 200);
+        return new ExpenseResource($expense);
     }
 
     // Destroy method

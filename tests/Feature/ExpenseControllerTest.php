@@ -13,25 +13,25 @@ uses(RefreshDatabase::class);
 it('lists expenses for a month', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
-    Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $month['id']]);
-    Expense::forceCreate(['amount' => 50, 'date' => now()->toDateString(), 'type' => 'fixed', 'category_id' => $category->id, 'month_id' => $month['id']]);
+    Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $monthId]);
+    Expense::forceCreate(['amount' => 50, 'date' => now()->toDateString(), 'type' => 'fixed', 'category_id' => $category->id, 'month_id' => $monthId]);
 
-    $response = $this->getJson("/api/months/{$month['id']}/expenses");
+    $response = $this->getJson("/api/months/{$monthId}/expenses");
 
     $response->assertOk();
-    expect($response->json())->toHaveCount(2);
+    expect($response->json('data'))->toHaveCount(2);
 });
 
 it('returns empty list for month with no expenses', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
 
-    $this->getJson("/api/months/{$month['id']}/expenses")
+    $this->getJson("/api/months/{$monthId}/expenses")
         ->assertOk()
-        ->assertJson([]);
+        ->assertJsonPath('data', []);
 });
 
 it('returns 404 when listing expenses for non-existent month', function () {
@@ -54,33 +54,35 @@ it('returns 404 when listing expenses for another users month', function () {
 it('creates an expense in the active month', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
 
-    $response = $this->postJson("/api/months/{$month['id']}/expenses", [
+    $response = $this->postJson("/api/months/{$monthId}/expenses", [
         'amount' => 250,
         'type' => 'variable',
         'category_id' => $category->id,
     ]);
 
     $response->assertCreated()
-        ->assertJsonFragment(['amount' => 250, 'type' => 'variable', 'category_id' => $category->id]);
-    $this->assertDatabaseHas('expenses', ['amount' => 250, 'type' => 'variable', 'month_id' => $month['id']]);
+        ->assertJsonPath('data.amount', 250)
+        ->assertJsonPath('data.type', 'variable')
+        ->assertJsonPath('data.category_id', $category->id);
+    $this->assertDatabaseHas('expenses', ['amount' => 250, 'type' => 'variable', 'month_id' => $monthId]);
 });
 
 it('creates an expense with a custom date', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
 
-    $this->postJson("/api/months/{$month['id']}/expenses", [
+    $this->postJson("/api/months/{$monthId}/expenses", [
         'amount' => 100,
         'date' => '2026-01-15',
         'type' => 'fixed',
         'category_id' => $category->id,
     ])->assertCreated()
-        ->assertJsonFragment(['date' => '2026-01-15']);
+        ->assertJsonPath('data.date', '2026-01-15');
 });
 
 it('rejects creating expense in a past month', function () {
@@ -100,11 +102,11 @@ it('rejects creating expense in a past month', function () {
 it('rejects creating expense with soft-deleted category', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
     $category->delete();
 
-    $this->postJson("/api/months/{$month['id']}/expenses", [
+    $this->postJson("/api/months/{$monthId}/expenses", [
         'amount' => 100,
         'type' => 'variable',
         'category_id' => $category->id,
@@ -114,10 +116,10 @@ it('rejects creating expense with soft-deleted category', function () {
 it('rejects creating expense with another users category', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $otherCategory = Category::forceCreate(['name' => 'Theirs', 'default_type' => 'fixed', 'user_id' => User::factory()->create()->id]);
 
-    $this->postJson("/api/months/{$month['id']}/expenses", [
+    $this->postJson("/api/months/{$monthId}/expenses", [
         'amount' => 100,
         'type' => 'variable',
         'category_id' => $otherCategory->id,
@@ -127,9 +129,9 @@ it('rejects creating expense with another users category', function () {
 it('validates expense creation inputs', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
 
-    $this->postJson("/api/months/{$month['id']}/expenses", [])
+    $this->postJson("/api/months/{$monthId}/expenses", [])
         ->assertStatus(422);
 });
 
@@ -138,13 +140,14 @@ it('validates expense creation inputs', function () {
 it('shows an expense', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
-    $expense = Expense::forceCreate(['amount' => 75, 'date' => now()->toDateString(), 'type' => 'fixed', 'category_id' => $category->id, 'month_id' => $month['id']]);
+    $expense = Expense::forceCreate(['amount' => 75, 'date' => now()->toDateString(), 'type' => 'fixed', 'category_id' => $category->id, 'month_id' => $monthId]);
 
     $this->getJson("/api/expenses/{$expense->id}")
         ->assertOk()
-        ->assertJsonFragment(['amount' => 75, 'type' => 'fixed']);
+        ->assertJsonPath('data.amount', 75)
+        ->assertJsonPath('data.type', 'fixed');
 });
 
 it('returns 404 for non-existent expense', function () {
@@ -171,9 +174,9 @@ it('returns 404 for another users expense', function () {
 it('updates an expense in the active month', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
-    $expense = Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $month['id']]);
+    $expense = Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $monthId]);
 
     $response = $this->putJson("/api/expenses/{$expense->id}", [
         'amount' => 200,
@@ -182,7 +185,8 @@ it('updates an expense in the active month', function () {
     ]);
 
     $response->assertOk()
-        ->assertJsonFragment(['amount' => 200, 'type' => 'fixed']);
+        ->assertJsonPath('data.amount', 200)
+        ->assertJsonPath('data.type', 'fixed');
 });
 
 it('rejects updating an expense from a past month', function () {
@@ -214,9 +218,9 @@ it('returns 404 when updating non-existent expense', function () {
 it('validates expense update inputs', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
-    $expense = Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $month['id']]);
+    $expense = Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $monthId]);
 
     $this->putJson("/api/expenses/{$expense->id}", [])
         ->assertStatus(422);
@@ -227,9 +231,9 @@ it('validates expense update inputs', function () {
 it('deletes an expense from the active month', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $month = $this->getJson('/api/months')->json('0');
+    $monthId = $this->getJson('/api/months')->json('data.0.id');
     $category = Category::forceCreate(['name' => 'Food', 'default_type' => 'variable', 'user_id' => $user->id]);
-    $expense = Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $month['id']]);
+    $expense = Expense::forceCreate(['amount' => 100, 'date' => now()->toDateString(), 'type' => 'variable', 'category_id' => $category->id, 'month_id' => $monthId]);
 
     $this->deleteJson("/api/expenses/{$expense->id}")
         ->assertOk()

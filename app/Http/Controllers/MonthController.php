@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\MonthResource;
+use App\Http\Resources\MonthSummaryResource;
 use App\Models\Month;
 use Illuminate\Http\Request;
 
@@ -12,7 +14,7 @@ class MonthController extends Controller
     {
         $months = auth()->user()->months()->get();
 
-        return response()->json($months, 200);
+        return MonthResource::collection($months);
     }
 
     // Show method
@@ -23,7 +25,7 @@ class MonthController extends Controller
             return response()->json(['message' => 'Month not found'], 404);
         }
 
-        return response()->json($month, 200);
+        return new MonthResource($month);
     }
 
     // Store method (used by EnsureCurrentMonthExists middleware)
@@ -84,7 +86,7 @@ class MonthController extends Controller
             'savings_goal' => $request->savings_goal,
         ]);
 
-        return response()->json($month, 200);
+        return new MonthResource($month);
     }
 
     // summary method
@@ -95,6 +97,6 @@ class MonthController extends Controller
             return response()->json(['message' => 'Month not found'], 404);
         }
 
-        return response()->json($month->summary(), 200);
+        return new MonthSummaryResource($month);
     }
 }

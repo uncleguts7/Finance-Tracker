@@ -56,23 +56,9 @@ class Month extends Model
             ->get();
     }
 
-    // Return a summary of the month
-    public function summary()
+    // Return a summary of the month (pure computation — shape decision belongs to MonthSummaryResource)
+    public function summary(): array
     {
-        if ($this->is_skipped) {
-            return [
-                'is_skipped' => true,
-                'skipped_at' => $this->skipped_at,
-                'income' => null,
-                'savings_goal' => null,
-                'total_spent' => null,
-                'remaining' => null,
-                'available_to_spend' => null,
-                'is_overspent' => null,
-                'spending_by_category' => [],
-            ];
-        }
-
         return [
             'income' => $this->income,
             'savings_goal' => $this->savings_goal,

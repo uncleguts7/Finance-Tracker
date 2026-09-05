@@ -17,9 +17,9 @@ it('registers a user and returns token with default categories', function () {
     ]);
 
     $response->assertCreated()
-        ->assertJsonStructure(['user' => ['id', 'name', 'email'], 'token']);
+        ->assertJsonStructure(['data' => ['id', 'name', 'email', 'token']]);
 
-    expect($response->json('user.email'))->toBe('jane@example.com');
+    expect($response->json('data.email'))->toBe('jane@example.com');
 
     $this->assertDatabaseHas('users', ['email' => 'jane@example.com']);
 
@@ -79,7 +79,7 @@ it('logs in with valid credentials', function () {
     ]);
 
     $response->assertOk()
-        ->assertJsonStructure(['user' => ['id', 'name', 'email'], 'token']);
+        ->assertJsonStructure(['data' => ['id', 'name', 'email', 'token']]);
 });
 
 it('rejects login with wrong password', function () {
@@ -140,7 +140,8 @@ it('returns the authenticated user', function () {
         ->getJson('/api/user');
 
     $response->assertOk()
-        ->assertJson(['id' => $user->id, 'email' => $user->email]);
+        ->assertJsonPath('data.id', $user->id)
+        ->assertJsonPath('data.email', $user->email);
 });
 
 it('requires authentication for user endpoint', function () {

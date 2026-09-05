@@ -86,7 +86,11 @@ it('backfills a gap month', function () {
     ]);
 
     $response->assertCreated()
-        ->assertJsonFragment(['year' => 2026, 'month_number' => 3, 'is_skipped' => false, 'income' => 5000, 'savings_goal' => 1000]);
+        ->assertJsonPath('data.year', 2026)
+        ->assertJsonPath('data.month_number', 3)
+        ->assertJsonPath('data.is_skipped', false)
+        ->assertJsonPath('data.income', 5000)
+        ->assertJsonPath('data.savings_goal', 1000);
 
     $this->assertDatabaseHas('months', [
         'user_id' => $this->user->id,
@@ -124,7 +128,11 @@ it('skips a gap month', function () {
     ]);
 
     $response->assertCreated()
-        ->assertJsonFragment(['year' => 2026, 'month_number' => 3, 'is_skipped' => true, 'income' => 0, 'savings_goal' => 0]);
+        ->assertJsonPath('data.year', 2026)
+        ->assertJsonPath('data.month_number', 3)
+        ->assertJsonPath('data.is_skipped', true)
+        ->assertJsonPath('data.income', 0)
+        ->assertJsonPath('data.savings_goal', 0);
     $this->assertDatabaseHas('months', [
         'user_id' => $this->user->id,
         'year' => 2026,
@@ -166,14 +174,16 @@ it('returns null summary for a skipped month', function () {
         ->getJson("/api/months/{$month->id}/summary")
         ->assertOk()
         ->assertJson([
-            'is_skipped' => true,
-            'income' => null,
-            'savings_goal' => null,
-            'total_spent' => null,
-            'remaining' => null,
-            'available_to_spend' => null,
-            'is_overspent' => null,
-            'spending_by_category' => [],
+            'data' => [
+                'is_skipped' => true,
+                'income' => null,
+                'savings_goal' => null,
+                'total_spent' => null,
+                'remaining' => null,
+                'available_to_spend' => null,
+                'is_overspent' => null,
+                'spending_by_category' => [],
+            ],
         ]);
 });
 
@@ -184,7 +194,7 @@ it('includes skipped months in the month list', function () {
     $response = $this->actingAs($this->user)->getJson('/api/months');
 
     $response->assertOk();
-    expect(collect($response->json())->where('is_skipped', true))->toHaveCount(1);
+    expect(collect($response->json('data'))->where('is_skipped', true))->toHaveCount(1);
 });
 
 it('requires authentication for backfill', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class CategoryController extends Controller
     {
         $categories = auth()->user()->categories()->get();
 
-        return response()->json($categories, 200);
+        return CategoryResource::collection($categories);
     }
 
     // Store method
@@ -29,7 +30,7 @@ class CategoryController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        return response()->json($category, 201);
+        return CategoryResource::make($category)->response()->setStatusCode(201);
     }
 
     // Update method
@@ -50,7 +51,7 @@ class CategoryController extends Controller
             'default_type' => $request->default_type,
         ]);
 
-        return response()->json($category, 200);
+        return new CategoryResource($category);
     }
 
     // Destroy method
