@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\MonthResource;
 use App\Http\Resources\MonthSummaryResource;
-use App\Models\Month;
 use Illuminate\Http\Request;
 
 class MonthController extends Controller
@@ -26,42 +25,6 @@ class MonthController extends Controller
         }
 
         return new MonthResource($month);
-    }
-
-    // Store method (used by EnsureCurrentMonthExists middleware)
-    public function store()
-    {
-        $exists = auth()->user()->months()
-            ->where('year', now()->year)
-            ->where('month_number', now()->month)
-            ->exists();
-
-        if ($exists) {
-            return;
-        }
-
-        $activeMonth = auth()->user()->months()
-            ->where('is_active', true)
-            ->first();
-
-        $income = $activeMonth ? $activeMonth->income : 0;
-        $savings_goal = $activeMonth ? $activeMonth->savings_goal : 0;
-
-        $month = Month::forceCreate([
-            'year' => now()->year,
-            'month_number' => now()->month,
-            'income' => $income,
-            'savings_goal' => $savings_goal,
-            'is_active' => true,
-            'user_id' => auth()->id(),
-        ]);
-
-        if ($activeMonth) {
-            $activeMonth->is_active = false;
-            $activeMonth->save();
-        }
-
-        return response()->json($month, 201);
     }
 
     // Update method

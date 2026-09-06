@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -19,26 +20,30 @@ class AuthController extends Controller
             'password' => 'required|min:8|confirmed',
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
-
-        $defaultCategories = [
-            ['name' => 'Electricity', 'default_type' => 'fixed', 'is_default' => true],
-            ['name' => 'Gas', 'default_type' => 'fixed', 'is_default' => true],
-            ['name' => 'Water', 'default_type' => 'fixed', 'is_default' => true],
-        ];
-
-        foreach ($defaultCategories as $category) {
-            Category::forceCreate([
-                'name' => $category['name'],
-                'default_type' => $category['default_type'],
-                'is_default' => $category['is_default'],
-                'user_id' => $user->id,
+        $user = DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
             ]);
-        }
+
+            $defaultCategories = [
+                ['name' => 'Electricity', 'default_type' => 'fixed', 'is_default' => true],
+                ['name' => 'Gas', 'default_type' => 'fixed', 'is_default' => true],
+                ['name' => 'Water', 'default_type' => 'fixed', 'is_default' => true],
+            ];
+
+            foreach ($defaultCategories as $category) {
+                Category::forceCreate([
+                    'name' => $category['name'],
+                    'default_type' => $category['default_type'],
+                    'is_default' => $category['is_default'],
+                    'user_id' => $user->id,
+                ]);
+            }
+
+            return $user;
+        });
 
         $token = $user->createToken('auth-token');
 
