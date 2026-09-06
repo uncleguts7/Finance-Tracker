@@ -410,9 +410,7 @@ if (! $month) return response()->json(['message' => 'Month not found'], 404);
 return new MonthSummaryResource($month);
 ```
 
-`MonthController::store()` is **not touched** — it remains dead code
-(excluded from routes via `apiResource except: ['store']`), per the
-decision recorded in PROJECT_MEMORY.md §6.
+`MonthController::store()` was **later removed** (see PROJECT_MEMORY.md §6).
 
 ### 7.3 `CategoryController`
 
@@ -659,7 +657,7 @@ required. If/when a frontend is built, it should be designed against the
 - `routes/api.php` — no route changes
 - `routes/web.php` — no route changes
 - `app/Http/Middleware/EnsureCurrentMonthExists.php` — no changes
-- `app/Http/Controllers/MonthController::store()` — left as dead code, unchanged
+- `app/Http/Controllers/MonthController::store()` — later removed (see PROJECT_MEMORY.md §6)
 - `app/Models/Category.php`, `Expense.php`, `User.php` — no model changes
 - `database/migrations/*` — no migrations needed
 - `app/Models/Month` — only `summary()` changes; helper methods, relationships, fillable unchanged

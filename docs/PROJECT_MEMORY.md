@@ -135,7 +135,7 @@ Month (1) ──< (many) Expense >── (1) Category
 - **`Month.savings_goal` column name**: initially typo'd as `saving_goal` in migration; corrected to `savings_goal` for consistency with design docs/code.
 - **Month creation logic location**: initially being built as `MonthController@store()`. Realized `store` wasn't even routed (months are never manually created via API) — logic was moved entirely into `EnsureCurrentMonthExists` middleware instead.
 - **Category seeding moved from global seeder to registration flow**: originally `CategorySeeder` seeded 3 defaults globally (no user_id). After adding auth, seeding happens inline in `AuthController::register()` per new user. The old `CategorySeeder` file remains but is no longer called — intentionally kept as a reference.
-- **`MonthController::store()` left as dead code**: excluded from routes via `apiResource` `except: ['store']`. Not removed — kept for reference but never called. Month creation is exclusively handled by `EnsureCurrentMonthExists` middleware.
+- **`MonthController::store()` removed**: originally left as dead code (excluded from routes via `apiResource except: ['store']`), kept "for reference." Revisited during the user-FK tightening refactor — method and its `Month` import removed entirely. Month creation is exclusively handled by `EnsureCurrentMonthExists` middleware.
 - **`Month::summary()` is now pure computation**: the `is_skipped` branch was removed from the model method and moved to `MonthSummaryResource`. This keeps the model focused on data computation while the resource owns the presentation/shape decision (skipped months return nulls vs normal months return computed values).
 
 ---
@@ -150,6 +150,7 @@ Month (1) ──< (many) Expense >── (1) Category
 - All Month/Expense routes wrapped in `auth:sanctum` + `ensure.month` middleware
 - `EnsureCurrentMonthExists` middleware scoped to authenticated user — correctly creates first-ever month for new users
 - Migration to add `user_id` to `months` and `categories` tables (applied)
+- Migration to tighten `user_id` to NOT NULL on `months` and `categories` (matches docs §2; refuses to run if NULL rows exist)
 - Migrations: `categories`, `months`, `expenses` (dependency order respected)
 - Models: `Category`, `Month`, `Expense` — fillables, relationships, and Month's calculation methods all in place
 - `CategorySeeder`: seeds Electricity, Gas, Water (all `default_type: fixed`, `is_default: true`) via `forceCreate()` — **orphaned** (no longer called; seeding now happens per-user at registration)
