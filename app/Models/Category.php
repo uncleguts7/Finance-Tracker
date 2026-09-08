@@ -15,6 +15,10 @@ class Category extends Model
         'default_type',
     ];
 
+    protected $casts = [
+        'is_default' => 'boolean',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

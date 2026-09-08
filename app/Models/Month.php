@@ -12,6 +12,11 @@ class Month extends Model
         'income',
     ];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_skipped' => 'boolean',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

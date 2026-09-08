@@ -20,7 +20,7 @@ it('lists the current month from middleware', function () {
     expect($response->json('data'))->toHaveCount(1)
         ->and($response->json('data.0.year'))->toBe((int) now()->year)
         ->and($response->json('data.0.month_number'))->toBe((int) now()->month)
-        ->and($response->json('data.0.is_active'))->toBe(1);
+        ->and($response->json('data.0.is_active'))->toBeTrue();
 });
 
 it('lists all months for the user', function () {

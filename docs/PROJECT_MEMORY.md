@@ -137,6 +137,8 @@ Month (1) ──< (many) Expense >── (1) Category
 - **Category seeding moved from global seeder to registration flow**: originally `CategorySeeder` seeded 3 defaults globally (no user_id). After adding auth, seeding happens inline in `AuthController::register()` per new user. The old `CategorySeeder` file remains but is no longer called — intentionally kept as a reference.
 - **`MonthController::store()` removed**: originally left as dead code (excluded from routes via `apiResource except: ['store']`), kept "for reference." Revisited during the user-FK tightening refactor — method and its `Month` import removed entirely. Month creation is exclusively handled by `EnsureCurrentMonthExists` middleware.
 - **`Month::summary()` is now pure computation**: the `is_skipped` branch was removed from the model method and moved to `MonthSummaryResource`. This keeps the model focused on data computation while the resource owns the presentation/shape decision (skipped months return nulls vs normal months return computed values).
+- **`Month` `$casts` missing / full serialization chain**: `Month` had no explicit `$casts` array, causing `is_active`/`is_skipped` to serialize inconsistently (`1`/`0` vs `true`/`false`). Fixed by adding `$casts`. Audit also added `Category.is_default` (boolean), `Expense.amount` (`decimal:2`), and `Expense.date` (`date`). **Key lesson from the date fix:** a bare `'date'` cast only fixes PHP-level Carbon behavior — JSON serialization format (`Y-m-d` vs full ISO) must be enforced in the Resource (`ExpenseResource::format('Y-m-d')`), not the model cast. This is the same presentation-layer principle used for skipped-month null shapes (`MonthSummaryResource`). No fillable/validation/business changes.
+- **`EnsureCurrentMonthExists` "Undefined method 'user'" investigation**: investigated (new-user first request, month rollover, gap endpoint, missing-token case), not reproduced under any condition. Middleware ordering confirmed correct (`auth:sanctum` before `ensure.month` in route groups). Root cause unconfirmed — not a deliberate fix, not resolved, no code changed for this.
 
 ---
 
@@ -174,7 +176,7 @@ Month (1) ──< (many) Expense >── (1) Category
 **Missing / not yet built:**
 - No frontend — planned as a separate SPA
 
-**78 Pest tests covering all endpoints** (auth, categories, months, expenses, gaps, summaries, API resource responses) — all passing.
+**79 Pest tests covering all endpoints** (auth, categories, months, expenses, gaps, summaries, API resource responses, serialization regression) — all passing. Serialization contracts guaranteed by explicit `$casts` + `ExpenseResource` formatting.
 
 ## 8. What's Next (Not Yet Designed/Built)
 

@@ -12,7 +12,7 @@ class ExpenseResource extends JsonResource
         return [
             'id' => $this->id,
             'amount' => $this->amount,
-            'date' => $this->date,
+            'date' => $this->date->format('Y-m-d'),
             'type' => $this->type,
             'category_id' => $this->category_id,
             'month_id' => $this->month_id,

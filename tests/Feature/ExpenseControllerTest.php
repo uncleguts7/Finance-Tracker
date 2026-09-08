@@ -64,7 +64,7 @@ it('creates an expense in the active month', function () {
     ]);
 
     $response->assertCreated()
-        ->assertJsonPath('data.amount', 250)
+        ->assertJsonPath('data.amount', '250.00')
         ->assertJsonPath('data.type', 'variable')
         ->assertJsonPath('data.category_id', $category->id);
     $this->assertDatabaseHas('expenses', ['amount' => 250, 'type' => 'variable', 'month_id' => $monthId]);
@@ -146,7 +146,7 @@ it('shows an expense', function () {
 
     $this->getJson("/api/expenses/{$expense->id}")
         ->assertOk()
-        ->assertJsonPath('data.amount', 75)
+        ->assertJsonPath('data.amount', '75.00')
         ->assertJsonPath('data.type', 'fixed');
 });
 
@@ -185,7 +185,7 @@ it('updates an expense in the active month', function () {
     ]);
 
     $response->assertOk()
-        ->assertJsonPath('data.amount', 200)
+        ->assertJsonPath('data.amount', '200.00')
         ->assertJsonPath('data.type', 'fixed');
 });
 
