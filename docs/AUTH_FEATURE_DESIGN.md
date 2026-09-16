@@ -46,11 +46,13 @@ subsequent request.
 
 ### Endpoints
 ```
-POST /api/register   → create user, hash password, seed 3 default categories
-                        (scoped to new user), issue token, return user + token
-POST /api/login       → verify credentials, issue token, return user + token
-POST /api/logout      → invalidate current token (auth:sanctum required)
-GET  /api/user        → return currently authenticated user (auth:sanctum required)
+POST /api/register       → create user, hash password, seed 3 default categories
+                             (scoped to new user), issue token, return user + token
+POST /api/login          → verify credentials, issue token, return user + token
+POST /api/logout         → invalidate current token (auth:sanctum required)
+GET  /api/user           → return currently authenticated user (auth:sanctum required)
+PUT  /api/user           → update authenticated user's name (auth:sanctum required)
+PUT  /api/user/password  → change password, revoke all tokens, issue new token (auth:sanctum required)
 ```
 
 ### Registration validation
@@ -59,6 +61,28 @@ GET  /api/user        → return currently authenticated user (auth:sanctum requ
 'email' => 'required|email|unique:users,email',
 'password' => 'required|min:8|confirmed',
 ```
+
+### Profile update validation (PUT /api/user)
+```php
+'name' => 'required|string|max:255',
+```
+
+### Password change validation (PUT /api/user/password)
+```php
+'current_password' => 'required|string',
+'password' => 'required|string|min:8|confirmed',
+```
+
+### Password change flow (PUT /api/user/password)
+1. Validate input (`current_password`, `password`, `password_confirmation`)
+2. Verify `current_password` matches stored hash → 422 if wrong
+3. Verify new password ≠ current password → 422 if same
+4. Hash new password, update user
+5. Revoke **all** user's existing Sanctum tokens (`$user->tokens()->delete()`)
+6. Issue fresh token
+7. Return user + new token
+
+**Security rationale:** Revoking all tokens on password change is standard practice (GitHub, Google, etc.) — it ensures stolen tokens become useless immediately. The new token keeps the current session alive.
 
 ### Registration flow (in order)
 1. Validate input

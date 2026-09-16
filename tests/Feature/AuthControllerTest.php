@@ -147,3 +147,192 @@ it('returns the authenticated user', function () {
 it('requires authentication for user endpoint', function () {
     $this->getJson('/api/user')->assertUnauthorized();
 });
+
+// ─── PUT /api/user (Update Profile) ───
+
+it('updates the authenticated user name', function () {
+    $user = User::factory()->create(['name' => 'Old Name']);
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $response = $this->withToken($token)
+        ->putJson('/api/user', [
+            'name' => 'New Name',
+        ]);
+
+    $response->assertOk()
+        ->assertJsonPath('data.name', 'New Name')
+        ->assertJsonPath('data.email', $user->email)
+        ->assertJsonPath('data.id', $user->id);
+
+    $this->assertDatabaseHas('users', ['id' => $user->id, 'name' => 'New Name']);
+});
+
+it('returns created_at in user response after profile update', function () {
+    $user = User::factory()->create();
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $response = $this->withToken($token)
+        ->putJson('/api/user', [
+            'name' => 'Updated Name',
+        ]);
+
+    $response->assertOk()
+        ->assertJsonStructure(['data' => ['id', 'name', 'email', 'created_at']]);
+});
+
+it('fails profile update with missing name', function () {
+    $user = User::factory()->create();
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/user', [])
+        ->assertStatus(422);
+});
+
+it('fails profile update with empty name', function () {
+    $user = User::factory()->create();
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/user', ['name' => ''])
+        ->assertStatus(422);
+});
+
+it('fails profile update with name too long', function () {
+    $user = User::factory()->create();
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/user', ['name' => str_repeat('a', 256)])
+        ->assertStatus(422);
+});
+
+it('requires authentication for profile update', function () {
+    $this->putJson('/api/user', ['name' => 'New Name'])->assertUnauthorized();
+});
+
+// ─── PUT /api/user/password (Change Password) ───
+
+it('changes password and returns new token', function () {
+    $user = User::factory()->create(['password' => Hash::make('oldpassword')]);
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    expect($user->tokens()->count())->toBe(1);
+
+    $response = $this->withToken($token)
+        ->putJson('/api/user/password', [
+            'current_password' => 'oldpassword',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+    $response->assertOk()
+        ->assertJsonStructure(['data' => ['id', 'name', 'email', 'created_at', 'token']]);
+
+    expect($response->json('data.token'))->not->toBeNull();
+
+    $user->refresh();
+    expect(Hash::check('newpassword123', $user->password))->toBeTrue();
+    expect($user->tokens()->count())->toBe(1); // Old token revoked, new one issued
+});
+
+it('fails password change with incorrect current password', function () {
+    $user = User::factory()->create(['password' => Hash::make('correctpassword')]);
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $response = $this->withToken($token)
+        ->putJson('/api/user/password', [
+            'current_password' => 'wrongpassword',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('errors.current_password.0', 'The current password is incorrect.');
+
+    $user->refresh();
+    expect(Hash::check('correctpassword', $user->password))->toBeTrue();
+});
+
+it('fails password change when new password matches current password', function () {
+    $user = User::factory()->create(['password' => Hash::make('samepassword')]);
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $response = $this->withToken($token)
+        ->putJson('/api/user/password', [
+            'current_password' => 'samepassword',
+            'password' => 'samepassword',
+            'password_confirmation' => 'samepassword',
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('errors.password.0', 'The new password must be different from the current password.');
+
+    $user->refresh();
+    expect(Hash::check('samepassword', $user->password))->toBeTrue();
+});
+
+it('fails password change with missing current password', function () {
+    $user = User::factory()->create();
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/user/password', [
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ])
+        ->assertStatus(422);
+});
+
+it('fails password change with short new password', function () {
+    $user = User::factory()->create(['password' => Hash::make('oldpassword')]);
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/user/password', [
+            'current_password' => 'oldpassword',
+            'password' => '123',
+            'password_confirmation' => '123',
+        ])
+        ->assertStatus(422);
+});
+
+it('fails password change with unconfirmed new password', function () {
+    $user = User::factory()->create(['password' => Hash::make('oldpassword')]);
+    $token = $user->createToken('auth-token')->plainTextToken;
+
+    $this->withToken($token)
+        ->putJson('/api/user/password', [
+            'current_password' => 'oldpassword',
+            'password' => 'newpassword123',
+        ])
+        ->assertStatus(422);
+});
+
+it('revokes all existing tokens on password change', function () {
+    $user = User::factory()->create(['password' => Hash::make('oldpassword')]);
+    $token1 = $user->createToken('device-1')->plainTextToken;
+    $token2 = $user->createToken('device-2')->plainTextToken;
+    $token3 = $user->createToken('device-3')->plainTextToken;
+
+    expect($user->tokens()->count())->toBe(3);
+
+    $this->withToken($token1)
+        ->putJson('/api/user/password', [
+            'current_password' => 'oldpassword',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ])
+        ->assertOk();
+
+    // All old tokens revoked, only new one exists
+    expect($user->fresh()->tokens()->count())->toBe(1);
+});
+
+it('requires authentication for password change', function () {
+    $this->putJson('/api/user/password', [
+        'current_password' => 'oldpassword',
+        'password' => 'newpassword123',
+        'password_confirmation' => 'newpassword123',
+    ])->assertUnauthorized();
+});
