@@ -9,7 +9,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureCurrentMonthExists
 {
-
     public function handle(Request $request, Closure $next): Response
     {
         $user = auth()->user();

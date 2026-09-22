@@ -29,11 +29,16 @@ class MonthSummaryResource extends JsonResource
         return [
             'income' => $this->income,
             'savings_goal' => $this->savings_goal,
-            'total_spent' => $this->totalSpent(),
-            'remaining' => $this->remaining(),
-            'available_to_spend' => $this->availableToSpend(),
+            'total_spent' => number_format((float) $this->totalSpent(), 2, '.', ''),
+            'remaining' => number_format((float) $this->remaining(), 2, '.', ''),
+            'available_to_spend' => number_format((float) $this->availableToSpend(), 2, '.', ''),
             'is_overspent' => $this->isOverSpent(),
-            'spending_by_category' => $this->spendingByCategory(),
+            'spending_by_category' => $this->spendingByCategory()->map(function ($item) {
+                return [
+                    'category_name' => $item->category_name,
+                    'total' => number_format((float) $item->total, 2, '.', ''),
+                ];
+            }),
         ];
     }
 }

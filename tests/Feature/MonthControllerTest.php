@@ -56,7 +56,8 @@ it('shows a specific month', function () {
         ->assertOk()
         ->assertJsonPath('data.year', 2026)
         ->assertJsonPath('data.month_number', 1)
-        ->assertJsonPath('data.income', 3000);
+        ->assertJsonPath('data.income', '3000.00')
+        ->assertJsonPath('data.savings_goal', '500.00');
 });
 
 it('returns 404 for a non-existent month', function () {
@@ -87,8 +88,8 @@ it('updates the active month', function () {
     ]);
 
     $response->assertOk()
-        ->assertJsonPath('data.income', 6000)
-        ->assertJsonPath('data.savings_goal', 1500);
+        ->assertJsonPath('data.income', '6000.00')
+        ->assertJsonPath('data.savings_goal', '1500.00');
 });
 
 it('rejects updating a past month', function () {
@@ -134,15 +135,15 @@ it('returns a summary for a month', function () {
     $response = $this->getJson("/api/months/{$month->id}/summary");
 
     $response->assertOk()
-        ->assertJsonPath('data.income', 5000)
-        ->assertJsonPath('data.savings_goal', 1000)
-        ->assertJsonPath('data.total_spent', 200)
-        ->assertJsonPath('data.remaining', 4800)
-        ->assertJsonPath('data.available_to_spend', 4000)
+        ->assertJsonPath('data.income', '5000.00')
+        ->assertJsonPath('data.savings_goal', '1000.00')
+        ->assertJsonPath('data.total_spent', '200.00')
+        ->assertJsonPath('data.remaining', '4800.00')
+        ->assertJsonPath('data.available_to_spend', '4000.00')
         ->assertJsonPath('data.is_overspent', false);
     expect($response->json('data.spending_by_category'))->toHaveCount(1)
         ->and($response->json('data.spending_by_category.0.category_name'))->toBe('Food')
-        ->and($response->json('data.spending_by_category.0.total'))->toBe(200);
+        ->and($response->json('data.spending_by_category.0.total'))->toBe('200.00');
 });
 
 it('returns 404 for summary of non-existent month', function () {

@@ -89,8 +89,8 @@ it('backfills a gap month', function () {
         ->assertJsonPath('data.year', 2026)
         ->assertJsonPath('data.month_number', 3)
         ->assertJsonPath('data.is_skipped', false)
-        ->assertJsonPath('data.income', 5000)
-        ->assertJsonPath('data.savings_goal', 1000);
+        ->assertJsonPath('data.income', '5000.00')
+        ->assertJsonPath('data.savings_goal', '1000.00');
 
     $this->assertDatabaseHas('months', [
         'user_id' => $this->user->id,
@@ -131,8 +131,8 @@ it('skips a gap month', function () {
         ->assertJsonPath('data.year', 2026)
         ->assertJsonPath('data.month_number', 3)
         ->assertJsonPath('data.is_skipped', true)
-        ->assertJsonPath('data.income', 0)
-        ->assertJsonPath('data.savings_goal', 0);
+        ->assertJsonPath('data.income', '0.00')
+        ->assertJsonPath('data.savings_goal', '0.00');
     $this->assertDatabaseHas('months', [
         'user_id' => $this->user->id,
         'year' => 2026,

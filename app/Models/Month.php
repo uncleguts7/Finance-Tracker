@@ -13,6 +13,8 @@ class Month extends Model
     ];
 
     protected $casts = [
+        'income' => 'decimal:2',
+        'savings_goal' => 'decimal:2',
         'is_active' => 'boolean',
         'is_skipped' => 'boolean',
     ];
@@ -54,7 +56,8 @@ class Month extends Model
     // Calculate the spending by category for this month
     public function spendingByCategory()
     {
-        return $this->expenses()
+        return Expense::query()
+            ->where('month_id', $this->id)
             ->join('categories', 'expenses.category_id', '=', 'categories.id')
             ->selectRaw('categories.name as category_name, SUM(expenses.amount) as total')
             ->groupBy('categories.name')
